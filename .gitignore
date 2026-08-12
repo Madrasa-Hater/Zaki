@@ -1,3 +1,5 @@
+# i lowk just asked ai to make me a .gitignore file based on the possible things in the directory
+# the comments were cringe so i logically deleted them 
 __pycache__/
 *.pyc
 *.pyo
