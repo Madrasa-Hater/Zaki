@@ -1,0 +1,29 @@
+# IMPORTANT:
+# Only edit the empty spaces where values go.
+# Leave everything else exactly as it is.
+
+# Paste your Discord bot token between the quotation marks.
+BOT_TOKEN = ""
+
+# Paste your Groq API key between the quotation marks.
+GROQ_API_KEY = ""
+
+# Paste your weather API key between the quotation marks.
+WEATHER_API_KEY = ""
+
+# Add the Discord user IDs that are allowed to use the bot.
+#
+# Example with one ID:
+# [123456789]
+#
+# Example with several IDs:
+# [123456789, 987654321, 555555555]
+#
+# Leave it as [] if you do not want to add any IDs yet.
+APPROVED_IDS = []
+
+# your system instructions go here, they can be multiline (put them between the 3 quotes)
+system_instructions = """"""
+
+# your model goes here. Preferrbly stay with the default module.
+MODEL = "openai/gpt-oss-20b"
