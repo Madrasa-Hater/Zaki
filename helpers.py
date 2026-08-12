@@ -31,44 +31,50 @@ def generate_text(text:str, model:str = MODEL):
             return f"Unhandled error in generate_text: {e}"
 
 def generate_text_img(text:str, image_path:str):
-    def encode_image(image_path_):
-        with open(image_path_, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+    try:
+        def encode_image(image_path_):
+            with open(image_path_, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
 
-    base64_image = encode_image(image_path)
+        base64_image = encode_image(image_path)
 
-    # Fix: properly detect MIME type instead of hardcoding jpeg
-    ext = image_path.split('.')[-1].lower()
-    mime = {
-        "jpg": "image/jpeg",
-        "jpeg": "image/jpeg",
-        "png": "image/png",
-        "webp": "image/webp"
-    }.get(ext, "image/jpeg")
+        # Fix: properly detect MIME type instead of hardcoding jpeg
+        ext = image_path.split('.')[-1].lower()
+        mime = {
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "png": "image/png",
+            "webp": "image/webp"
+        }.get(ext, "image/jpeg")
 
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "system",
-                "content": system_instructions
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": text},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{mime};base64,{base64_image}",
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_instructions
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": text},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime};base64,{base64_image}",
+                            },
                         },
-                    },
-                ],
-            }
-        ],
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
-    )
+                    ],
+                }
+            ],
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+        )
 
-    return chat_completion.choices[0].message.content
+        return chat_completion.choices[0].message.content
+    except Exception as e:
+        if 'does not exist or you do not have access to it' in str(e):
+            return f'uh oh the `{MODEL}` model is invalid'
+        else:
+            return f"Unhandled error in generate_text: {e}"
 
 
 def read_file(filename):
