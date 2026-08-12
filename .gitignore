@@ -1,18 +1,14 @@
-# Python stuff (since that's your thing)
 __pycache__/
 *.pyc
 *.pyo
 venv/
 .env
 
-# Bot secrets (please tell me you're not committing your bot tokens)
 config.json
 *.db
 *.sqlite
 _settings.py
-# OS junk
 .DS_Store
 
-# Editor junk
 .vscode/
 *.swp
