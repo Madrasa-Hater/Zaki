@@ -4,9 +4,21 @@
 from groq import Groq
 from _settings import *
 import base64
+import sqlite3
 
 client = Groq(api_key=GROQ_API_KEY)
+con = sqlite3.connect("db.memory")
+cur = con.cursor()
 
+def init_memory_db(text:str):
+    def log():
+        print(f"[init_memory_db] {text}")
+    try:
+        log("Initializing the database...")
+        cur.execute("CREATE TABLE IF NOT EXISTS memory(name, date, message)")
+        log("Initilization done!")
+    except Exception as e:
+        log(f"Unhandled exception: {e}")
 def generate_text(text:str, model:str = MODEL):
     try:
         chat_completion = client.chat.completions.create(
