@@ -43,7 +43,7 @@ async def on_message(message:discord.Message):
             # do NOT uncomment the following line unless you know whatt you are doing
             # what does this line do?
             # it prints the whole context to debug certain errors
-            await message.reply(context if len(context) <= 2000 else "contextt too long.")
+            # await message.reply(context if len(context) <= 2000 else "contextt too long.")
             await message.reply(response)
 
             print("Writing memory...")
