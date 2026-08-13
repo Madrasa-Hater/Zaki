@@ -11,6 +11,7 @@ config.json
 *.sqlite
 _settings.py
 .DS_Store
+db.memory
 
 .vscode/
 *.swp

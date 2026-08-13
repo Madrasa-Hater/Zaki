@@ -17,31 +17,43 @@ import discord
 import openai
 from discord.ext import commands
 
-import sqlite3
 from helpers import *
 from _settings import *
+import datetime
+_client = commands.AutoShardedBot(command_prefix="bro", intents=discord.Intents.all())
 
-client = commands.AutoShardedBot(command_prefix="bro", intents=discord.Intents.all())
-
-@client.event
+@_client.event
 async def on_ready():
+    init_memory_db()
     print("ich suis ready")
 
-@client.event
+@_client.event
 async def on_message(message:discord.Message):
     print(f"{message.author.name}: {message.content}")
-    if message.author == client.user:
+
+    if message.author == _client.user:
         return
-    if client.user in message.mentions:
+    if _client.user in message.mentions:
         print("Bot in message mentions, responding...")
 
+        context = f"Message: {message.content}, Context: Name: {message.author.name}, channel name: {message.channel.name}, server name: {message.guild.name}, current time: {datetime.datetime.now()} Your memory: {show_all_memory()}"
         async with message.channel.typing():
-            response = generate_text(message.content)
+            response = generate_text(context)
 
+            # do NOT uncomment the following line unless you know whatt you are doing
+            # what does this line do?
+            # it prints the whole context to debug certain errors
+            await message.reply(context if len(context) <= 2000 else "contextt too long.")
             await message.reply(response)
 
-            print("done responding")
+            print("Writing memory...")
+            write_memory(message=message, bot_response=response, client=_client)
+            print("Done recording memory!")
+    elif message.content.startswith("!memory"):
+        try:
+            await message.reply(show_all_memory())
+        except Exception as e:
+            if 'Cannot send an empty message' in str(e):
+                await message.reply("The memory is empty.")
 
-            print(f"Zaki: {response}")
-
-client.run(BOT_TOKEN)
+_client.run(BOT_TOKEN)
