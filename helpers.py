@@ -7,6 +7,7 @@ import base64
 import sqlite3
 import discord
 import datetime
+import requests
 
 client = Groq(api_key=GROQ_API_KEY)
 con = sqlite3.connect("db.memory")
@@ -25,14 +26,15 @@ def init_memory_db():
         log(f"Unhandled exception: {e}")
 
 def show_all_memory():
-    rows = cur.execute("""
+    rows = cur.execute(f"""
         SELECT name, date, message, your_response
         FROM memory
         ORDER BY date
+        LIMIT {memoryFetchLimit}
     """).fetchall()
 
     return "\n".join(
-        f"[{date}] {name}: {message}\nAssistant: {response}"
+        f"[{date}] {name}: {message}\Zaki: {response}"
         for name, date, message, response in rows
     )
 
@@ -76,49 +78,65 @@ def generate_text(text:str, model:str = MODEL):
         else:
             return f"Unhandled error in generate_text: {e}"
 
-def generate_text_img(text:str, image_path:str):
+
+VISION_MODEL = "qwen/qwen3.6-27b"
+
+def generate_text_img(text: str, image_path: str):
     try:
         def encode_image(image_path_):
-            with open(image_path_, "rb") as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
+            if image_path_.startswith("http://") or image_path_.startswith("https://"):
+                resp = requests.get(image_path_, timeout=10)
+                resp.raise_for_status()
+                content_type = resp.headers.get("Content-Type", "").split(";")[0].strip()
+                if not content_type.startswith("image/"):
+                    clean_path = image_path_.split("?")[0].split('.')[-1].lower()
+                    content_type = {
+                        "jpg": "image/jpeg",
+                        "jpeg": "image/jpeg",
+                        "png": "image/png",
+                        "webp": "image/webp"
+                    }.get(clean_path, "image/jpeg")
+                return base64.b64encode(resp.content).decode('utf-8'), content_type
+            else:
+                ext = image_path_.split('.')[-1].lower()
+                mime = {
+                    "jpg": "image/jpeg",
+                    "jpeg": "image/jpeg",
+                    "png": "image/png",
+                    "webp": "image/webp"
+                }.get(ext, "image/jpeg")
+                with open(image_path_, "rb") as image_file:
+                    return base64.b64encode(image_file.read()).decode('utf-8'), mime
 
-        base64_image = encode_image(image_path)
-
-        # Fix: properly detect MIME type instead of hardcoding jpeg
-        ext = image_path.split('.')[-1].lower()
-        mime = {
-            "jpg": "image/jpeg",
-            "jpeg": "image/jpeg",
-            "png": "image/png",
-            "webp": "image/webp"
-        }.get(ext, "image/jpeg")
+        base64_image, mime = encode_image(image_path)
 
         chat_completion = client.chat.completions.create(
             messages=[
-                {
-                    "role": "system",
-                    "content": system_instructions
-                },
+                {"role": "system", "content": system_instructions},
                 {
                     "role": "user",
                     "content": [
                         {"type": "text", "text": text},
                         {
                             "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime};base64,{base64_image}",
-                            },
+                            "image_url": {"url": f"data:{mime};base64,{base64_image}"},
                         },
                     ],
                 }
             ],
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model=VISION_MODEL,
+            reasoning_effort="none"
         )
 
         return chat_completion.choices[0].message.content
+
+    except requests.exceptions.RequestException as e:
+        return f"Couldn't download the image: {e}"
+
     except Exception as e:
+        print(f"[DEBUG] generate_text_img error: {type(e).__name__}: {e}")
         if 'does not exist or you do not have access to it' in str(e):
-            return f'uh oh the `{MODEL}` model is invalid'
+            return f'uh oh the `{VISION_MODEL}` model is invalid'
         else:
             return f"Unhandled error in generate_text: {e}"
 
@@ -130,6 +148,33 @@ def read_file(filename):
 def write_to_file(filename:str, text:str) -> None:
     with open(filename, 'a', encoding='utf-8') as content:
         content.write(text)
+
+def deleteAllRows():
+    cur.execute("DELETE FROM memory;")
+    con.commit()
+
+def chunk_message(text: str, limit: int = 2000):
+    """split text into <=limit character chunks, breaking on newlines/spaces where possible"""
+    if len(text) <= limit:
+        return [text]
+
+    chunks = []
+    while len(text) > limit:
+        split_at = text.rfind('\n', 0, limit)
+        if split_at == -1:
+            split_at = text.rfind(' ', 0, limit)
+        if split_at == -1:
+            split_at = limit
+        chunks.append(text[:split_at])
+        text = text[split_at:].lstrip('\n ')
+    if text:
+        chunks.append(text)
+    return chunks
+
+
+async def send_chunked(message: discord.Message, text: str):
+    for chunk in chunk_message(text):
+        await message.reply(chunk)
 
 if __name__ == "__main__":
     init_memory_db()
