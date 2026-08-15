@@ -11,10 +11,6 @@ Zaki is an AI Discord bot that I made. It talks like a human and acts like a hum
 Just mention/ping it on Discord and it will talk to you!!11!!
 
 - The file should look something like this for you
-
-## How to set up the bot?
-- Rename _settings.py.example to _settings.py
-- Go to the `_settings.py` file, everything you need will be there, like the system instructions, memory fetch limit, model, vision model, etc...
 ```py
 # IMPORTANT:
 # Only edit the empty spaces where values go.
@@ -45,3 +41,6 @@ system_instructions = """"""
 # your model goes here. Preferrbly stay with the default module.
 MODEL = "openai/gpt-oss-20b"
 ```
+## How to set up the bot?
+- Rename _settings.py.example to _settings.py
+- Go to the `_settings.py` file, everything you need will be there, like the system instructions, memory fetch limit, model, vision model, etc...
