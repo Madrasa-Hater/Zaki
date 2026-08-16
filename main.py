@@ -22,14 +22,81 @@ from _settings import *
 import datetime
 _client = commands.AutoShardedBot(command_prefix="bro", intents=discord.Intents.all())
 
+# i should probably switch to the logging library
 @_client.event
 async def on_ready():
-    # initializes the memory (checks if it is already initalized)
-    init_memory_db()
-    print("the bot is ready to be used")
+    print("=" * 50)
+    print("Starting Zaki startup checks...")
+    print("=" * 50)
 
-    # syncs the bot slash commands
-    await _client.tree.sync()
+    # bot info
+    print(f"Logged in as {_client.user}")
+    print(f"Bot ID: {_client.user.id}")
+    print(f"Guilds: {len(_client.guilds)}")
+    print(f"Latency: {_client.latency * 1000:.0f}ms")
+
+    # Database check
+    try:
+        init_memory_db()
+        show_all_memory()
+        print("[PASS] Memory database")
+    except Exception as e:
+        print(f"[FAIL] Memory database: {e}")
+
+    # AI backend check
+    # should i even call it a backend lol
+    try:
+        test_response = generate_text("Reply with exactly: OK")
+        print(f"[PASS] AI backend ({test_response[:50]})")
+    except Exception as e:
+        print(f"[FAIL] AI backend: {e}")
+
+    # Memory size check
+    try:
+        memory = show_all_memory()
+        memory_size = len(memory)
+
+        print(f"Memory size: {memory_size:,} characters")
+
+        if memory_size > 50000:
+            print("[WARN] Memory is getting large")
+    except Exception as e:
+        print(f"[FAIL] Memory size check: {e}")
+
+    # Sync slash commands
+    try:
+        synced = await _client.tree.sync()
+        print(f"[PASS] Synced {len(synced)} slash commands")
+    except Exception as e:
+        print(f"[FAIL] Command sync: {e}")
+
+    # Guild permissions check
+    print("\nGuild checks:")
+    for guild in _client.guilds:
+        me = guild.me
+
+        if me is None:
+            continue
+
+        missing = []
+
+        if not me.guild_permissions.send_messages:
+            missing.append("Send Messages")
+
+        if not me.guild_permissions.read_messages:
+            missing.append("Read Messages")
+
+        if not me.guild_permissions.embed_links:
+            missing.append("Embed Links")
+
+        if missing:
+            print(f"[WARN] {guild.name}: Missing {', '.join(missing)}")
+        else:
+            print(f"[PASS] {guild.name}")
+
+    print("=" * 50)
+    print("Zaki is ready.")
+    print("=" * 50)
     
 @_client.event
 async def on_message(message: discord.Message):
@@ -93,9 +160,9 @@ async def memory(ctx: commands.Context):
     else:
         await ctx.send("You are not an admin bro")
 
-@client.hybrid_command(name="help", description='outputs a list of avaliable commands')
-async def help(ctx:commands.Context):
-    embeed = discord.Embed(
+@_client.hybrid_command(name="_help", description='outputs a list of avaliable commands')
+async def _help(ctx:commands.Context):
+    embed = discord.Embed(
         title='PWD of commands', description="""
 **1.** /reset_memory
 - resets the memory of the bot by deleting every row
@@ -103,6 +170,7 @@ async def help(ctx:commands.Context):
 - shows the memory of the bot
 """
     )
+    await ctx.send(embed=embed)
 # this thing tries to run the bot, if no internet or a vpn/proxy is blocking it it sends an error message. if it is
 # an unhandled error it sends 'Unhandled error: <error here>'
 try:
