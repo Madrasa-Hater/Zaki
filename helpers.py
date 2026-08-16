@@ -1,6 +1,6 @@
 # VIVE LA PROGRAMMATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # - __Devion__
-# this file was directly ported from my old project. Although I'm going to modernize it a bit
+# this file was directly ported from my old project. Although I'm going to modernize it a bit (already done)
 from groq import Groq
 from _settings import *
 import base64
@@ -12,7 +12,6 @@ import requests
 client = Groq(api_key=GROQ_API_KEY)
 con = sqlite3.connect("db.memory")
 cur = con.cursor()
-
 
 def init_memory_db():
     def log(text:str):
@@ -79,8 +78,6 @@ def generate_text(text:str, model:str = MODEL):
             return f"Unhandled error in generate_text: {e}"
 
 
-VISION_MODEL = "qwen/qwen3.6-27b"
-
 def generate_text_img(text: str, image_path: str):
     try:
         def encode_image(image_path_):
@@ -140,7 +137,7 @@ def generate_text_img(text: str, image_path: str):
         else:
             return f"Unhandled error in generate_text: {e}"
 
-
+# these will be used for the AI agent
 def read_file(filename):
     with open(filename, "r", encoding="utf-8") as content:
         return content.read()
@@ -153,26 +150,25 @@ def deleteAllRows():
     cur.execute("DELETE FROM memory;")
     con.commit()
 
-def chunk_message(text: str, limit: int = 2000):
-    """split text into <=limit character chunks, breaking on newlines/spaces where possible"""
-    if len(text) <= limit:
-        return [text]
-
-    chunks = []
-    while len(text) > limit:
-        split_at = text.rfind('\n', 0, limit)
-        if split_at == -1:
-            split_at = text.rfind(' ', 0, limit)
-        if split_at == -1:
-            split_at = limit
-        chunks.append(text[:split_at])
-        text = text[split_at:].lstrip('\n ')
-    if text:
-        chunks.append(text)
-    return chunks
-
 
 async def send_chunked(message: discord.Message, text: str):
+    def chunk_message(text: str, limit: int = 2000):
+        """split text into <=limit character chunks, breaking on newlines/spaces where possible"""
+        if len(text) <= limit:
+            return [text]
+
+        chunks = []
+        while len(text) > limit:
+            split_at = text.rfind('\n', 0, limit)
+            if split_at == -1:
+                split_at = text.rfind(' ', 0, limit)
+            if split_at == -1:
+                split_at = limit
+            chunks.append(text[:split_at])
+            text = text[split_at:].lstrip('\n ')
+        if text:
+            chunks.append(text)
+        return chunks   
     for chunk in chunk_message(text):
         await message.reply(chunk)
 

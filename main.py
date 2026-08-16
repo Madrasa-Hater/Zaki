@@ -30,7 +30,7 @@ async def on_ready():
 
     # syncs the bot slash commands
     await _client.tree.sync()
-
+    
 @_client.event
 async def on_message(message: discord.Message):
     try:
@@ -69,25 +69,40 @@ async def on_message(message: discord.Message):
 @_client.hybrid_command(name="reset_memory", description="resets the memory")
 async def reset_memory(ctx:commands.Context):
     """Takes no arguments. Deletes all the rows of the memory database which resets the memory"""
-    deleteAllRows()
-    await ctx.reply("deleted all of the memory")
+    if ctx.author.id in APPROVED_IDS:
+        deleteAllRows()
+        await ctx.reply("deleted all of the memory")
+    else:
+        await ctx.send("You are not admin vro")
 
-@_client.hybrid_command(name="show_memory", description="shows the memory")
-async def show_memory(ctx: commands.Context):
+@_client.hybrid_command(name="memory", description="shows the memory")
+async def memory(ctx: commands.Context):
     """shows the memory in discord. sends them chunked if the message is too long and says 'nothin to show' if the bot has no thought xD"""
-    memory = show_all_memory()
+    if ctx.author.id in APPROVED_IDS:
+        memory = show_all_memory()
+        if not memory:
+            await ctx.reply("this bot has no thought...", ephemeral=True)
+            return
 
-    if not memory:
-        await ctx.reply("this bot has no thought...")
-        return
+        # splits the message into chunks (was ported from an old bot)
+        chunks = [memory[i:i + 2000] for i in range(0, len(memory), 2000)]
 
-    # splits the message into chunks (was ported from an old boo)
-    chunks = [memory[i:i + 2000] for i in range(0, len(memory), 2000)]
+        await ctx.reply(chunks[0])
+        for chunk in chunks[1:]:
+            await ctx.send(chunk, ephemeral=True)
+    else:
+        await ctx.send("You are not an admin bro")
 
-    await ctx.reply(chunks[0])
-    for chunk in chunks[1:]:
-        await ctx.send(chunk)
-
+@client.hybrid_command(name="help", description='outputs a list of avaliable commands')
+async def help(ctx:commands.Context):
+    embeed = discord.Embed(
+        title='PWD of commands', description="""
+**1.** /reset_memory
+- resets the memory of the bot by deleting every row
+**2.* /memory
+- shows the memory of the bot
+"""
+    )
 # this thing tries to run the bot, if no internet or a vpn/proxy is blocking it it sends an error message. if it is
 # an unhandled error it sends 'Unhandled error: <error here>'
 try:
